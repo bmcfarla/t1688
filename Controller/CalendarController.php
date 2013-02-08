@@ -11,42 +11,72 @@ class CalendarController extends AppController
     function beforeFilter()
     {
     	session_start();
+    	$this->client = new Google_Client();
+    	$this->client->setApplicationName("Troop1688_Calendar_Reader");
+    	
+    	$this->cal = new Google_CalendarService($this->client);
+    	$uses = false;
     }
     
     function index() {
-    	$client = new Google_Client();
-    	$client->setApplicationName("Troop1688_Calendar_Reader");
-
-    	$cal = new Google_CalendarService($client);
     	
+    	set_time_limit(0);
     	if (isset($_GET['logout'])) {
     		unset($_SESSION['token']);
     	}
     	
     	if (isset($_GET['code'])) {
-    		$client->authenticate($_GET['code']);
-    		$_SESSION['token'] = $client->getAccessToken();
+    		$this->client->authenticate($_GET['code']);
+    		$_SESSION['token'] = $this->client->getAccessToken();
     		header('Location: http://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF']);
     	}
     	
     	if (isset($_SESSION['token'])) {
-    		$client->setAccessToken($_SESSION['token']);
+    		$this->client->setAccessToken($_SESSION['token']);
     	}
 
-    	if ($client->getAccessToken()) {
-    		$calList = $cal->calendarList->listCalendarList();
-    		//debug($calList);
-    		$this->set('callist', $calList);
-    		$this->render('calendarList');
+    	if ($this->client->getAccessToken()) {
+    		$toDate = "20130331";
+    		$fromDate = "20130101";
+    		
+    		//$this->calList = $this->cal->events->listEvents('ei13vj25sj5bhs8nku7j0bipao@group.calendar.google.com',array('orderBy'=>'starttime','singleEvents'=>true,'timeMin'=>date('c',strtotime($fromDate)),'timeMax'=>date('c',strtotime($toDate))));
+    		$this->calList = $this->cal->calendarList->listCalendarList();
+    		
+    		$calId = $this->_getCalendarId('BSA Troop1688 Calendar');
+    		
+    		$this->eventList = $this->cal->events->listEvents($calId, array(
+    			'orderBy'=>'starttime',
+    			'singleEvents'=>true,
+    			'timeMin'=>date('c',strtotime($fromDate)),
+    			'timeMax'=>date('c',strtotime($toDate))
+    		));
+    		
+    		//5ck5uqtinscqq7ssjlo36vfgb0_20120229T000000Z
+    		//$this->calList = $this->cal->calendarList->listCalendarList();
+    		//debug($this->calList);
+    		$this->set('eventList', $this->eventList['items']);
+    		$this->render('calendar');
     	
-    		$_SESSION['token'] = $client->getAccessToken();
+    		$_SESSION['token'] = $this->client->getAccessToken();
     	} else {
-    		$authUrl = $client->createAuthUrl();
+    		$authUrl = $this->client->createAuthUrl();
     		$this->set('authUrl', $authUrl);
     		$this->render('login');
     		//debug("<a class='login' href='$authUrl'>Connect Me!</a>");
     	}
     	
-    	echo "What";
+    }
+    
+    function _getCalendarId($name){
+    	foreach ($this->calList['items'] as $c) {
+    		//debug($c['summary']);
+    		if ($c['summary'] == $name) {
+    			//debug($c['id']);
+    			//exit;
+    			return $c['id'];
+    		}
+    	}
+    	
+    	return 0;
     }
 }
