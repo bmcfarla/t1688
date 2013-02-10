@@ -20,6 +20,10 @@ class CalendarController extends AppController
     
     function index() {
     	
+    }
+    
+    function add() {
+ 
     	set_time_limit(0);
     	if (isset($_GET['logout'])) {
     		unset($_SESSION['token']);
@@ -36,8 +40,11 @@ class CalendarController extends AppController
     	}
 
     	if ($this->client->getAccessToken()) {
-    		$toDate = "20130331";
-    		$fromDate = "20130101";
+    		//$toDate = "20130331";
+    		//$fromDate = "20130101";
+    		
+    		$toDate = $this->request->data['calendar']['End'];
+    		$fromDate = $this->request->data['calendar']['Start'];
     		
     		//$this->calList = $this->cal->events->listEvents('ei13vj25sj5bhs8nku7j0bipao@group.calendar.google.com',array('orderBy'=>'starttime','singleEvents'=>true,'timeMin'=>date('c',strtotime($fromDate)),'timeMax'=>date('c',strtotime($toDate))));
     		$this->calList = $this->cal->calendarList->listCalendarList();
@@ -54,7 +61,9 @@ class CalendarController extends AppController
     		//5ck5uqtinscqq7ssjlo36vfgb0_20120229T000000Z
     		//$this->calList = $this->cal->calendarList->listCalendarList();
     		//debug($this->calList);
+    		
     		$this->set('eventList', $this->eventList['items']);
+    		$this->layout = 'calendar';
     		$this->render('calendar');
     	
     		$_SESSION['token'] = $this->client->getAccessToken();
